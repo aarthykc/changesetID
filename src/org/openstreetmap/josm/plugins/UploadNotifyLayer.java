@@ -9,13 +9,15 @@ import java.io.File;
  * Created by aarthychandrasekhar on 16/01/16.
  */
 public abstract class UploadNotifyLayer extends OsmDataLayer {
-
+    
+    //initializes the layer after uploading to server 
+    
     public UploadNotifyLayer(DataSet dataSet, String s, File file) {
         super(dataSet, s, file);
     }
 
     public abstract void onUploadNotifier();
-
+    
     @Override
     public void onPostUploadToServer() {
         super.onPostUploadToServer();
