@@ -9,6 +9,7 @@ import java.awt.event.ActionEvent;
 /**
  * Created by aarthychandrasekhar on 18/01/16.
  */
+ //toggle checkbox to trigger prefered action
 public class PreferenceAction extends JosmAction {
     public PreferenceAction(String name) {
         super(name, null, name, null, true);
