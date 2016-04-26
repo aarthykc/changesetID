@@ -6,11 +6,13 @@ import org.openstreetmap.josm.data.osm.ChangesetCache;
 import org.openstreetmap.josm.data.osm.event.AbstractDatasetChangedEvent;
 import org.openstreetmap.josm.data.osm.event.DataSetListenerAdapter;
 import org.openstreetmap.josm.gui.*;
-import org.openstreetmap.josm.gui.dialogs.relation.RunnableAction;
 import org.openstreetmap.josm.gui.help.HelpUtil;
 import org.openstreetmap.josm.gui.layer.Layer;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import javax.swing.*;
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 
 import static org.openstreetmap.josm.tools.I18n.marktr;
@@ -24,7 +26,8 @@ public class ChangesetIDPlugin extends Plugin implements  DataSetListenerAdapter
         MainMenu menu = Main.main.menu;
         JMenu showChangesetID;
         showChangesetID = menu.addMenu(marktr("ChangesetID"),"Changeset Link", KeyEvent.VK_K, menu.getDefaultMenuPos(), HelpUtil.ht("/Plugin/changesetID"));
-        jCheckboxMenuItem = new JCheckBoxMenuItem(new PreferenceAction("Show ChangesetID alert!"));
+        jCheckboxMenuItem = new JCheckBoxMenuItem(new PreferenceAction("Copy changeset link to clipboard"));
+        jCheckboxMenuItem.setSelected(true);
         showChangesetID.add(jCheckboxMenuItem);
         MapView.addLayerChangeListener(this);
         Main.addMapFrameListener(new MapFrameListener() {
@@ -61,13 +64,18 @@ public class ChangesetIDPlugin extends Plugin implements  DataSetListenerAdapter
             @Override
             public void onUploadNotifier() {
 
-                SwingUtilities.invokeLater(new RunnableAction() {
+                SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
                         for (final Changeset cs : ChangesetCache.getInstance().getChangesets()) {
-                            if(Main.pref.get("myplugin.clipboard").equals("yes"))
+                            if(Main.pref.get("myplugin.clipboard").equals("yes")) {
                                 new Notification("Changeset Link: https://www.openstreetmap.org/changeset/" + cs.getId()).setDuration(Notification.TIME_LONG).show();
-                            break;
+                                String changesetLink = "https://www.openstreetmap.org/changeset/" + cs.getId();
+                                StringSelection selection = new StringSelection(changesetLink);
+                                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                                clipboard.setContents(selection, selection);
+                                break;
+                            }
                         }
                     }
                 });
