@@ -14,6 +14,8 @@ import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 
 import static org.openstreetmap.josm.tools.I18n.marktr;
 
@@ -30,11 +32,7 @@ public class ChangesetIDPlugin extends Plugin implements  DataSetListenerAdapter
         jCheckboxMenuItem.setSelected(true);
         showChangesetID.add(jCheckboxMenuItem);
         MapView.addLayerChangeListener(this);
-        Main.addMapFrameListener(new MapFrameListener() {
-            @Override
-            public void mapFrameInitialized(final MapFrame mapFrame, MapFrame mapFrame1) {
-            }
-        });
+
     }
 
     @Override
@@ -43,51 +41,47 @@ public class ChangesetIDPlugin extends Plugin implements  DataSetListenerAdapter
 
     @Override
     public void layerAdded(Layer layer) {
-        if (!(layer instanceof UploadNotifyLayer)) {
-            if(layer instanceof OsmDataLayer)
-                registerNewLayer((OsmDataLayer) layer);
-        }
+        if(layer instanceof OsmDataLayer)
+            layer.addPropertyChangeListener(propertyChangeListener);
     }
 
     @Override
     public void layerRemoved(Layer layer) {
-        if (!(layer instanceof UploadNotifyLayer)) {
-            if (layer instanceof OsmDataLayer)
-                unRegisterNewLayer((OsmDataLayer) layer);
-        }
+        if (layer instanceof OsmDataLayer)
+            layer.removePropertyChangeListener(propertyChangeListener);
     }
-    private void unRegisterNewLayer(OsmDataLayer layer) {
-        layer.data.removeDataSetListener(dataSetListenerAdapter);
-    }
-    private void registerNewLayer(OsmDataLayer layer) {
-        Main.main.addLayer(new UploadNotifyLayer(layer.data, layer.getName(), layer.getAssociatedFile()) {
-            @Override
-            public void onUploadNotifier() {
 
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        for (final Changeset cs : ChangesetCache.getInstance().getChangesets()) {
-                            if(Main.pref.get("myplugin.clipboard").equals("yes")) {
-                                new Notification("Changeset Link: https://www.openstreetmap.org/changeset/" + cs.getId()).setDuration(Notification.TIME_LONG).show();
-                                String changesetLink = "https://www.openstreetmap.org/changeset/" + cs.getId();
-                                StringSelection selection = new StringSelection(changesetLink);
-                                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-                                clipboard.setContents(selection, selection);
-                                break;
-                            }
-                        }
-                    }
-                });
-            }
-        });
-        Main.main.removeLayer(layer);
-
-    }
 
     @Override
     public void processDatasetEvent(AbstractDatasetChangedEvent abstractDatasetChangedEvent) {
 
     }
+
+    PropertyChangeListener propertyChangeListener = new PropertyChangeListener() {
+        @Override
+        public void propertyChange(PropertyChangeEvent evt) {
+            if (evt.getPropertyName() == OsmDataLayer.REQUIRES_UPLOAD_TO_SERVER_PROP) {
+                if(!(Boolean)evt.getNewValue()) {
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            for (final Changeset cs : ChangesetCache.getInstance().getChangesets()) {
+                                if(Main.pref.get("myplugin.clipboard").equals("yes")) {
+                                    new Notification("Changeset Link: https://www.openstreetmap.org/changeset/" + cs.getId()).setDuration(Notification.TIME_LONG).show();
+                                    String changesetLink = "https://www.openstreetmap.org/changeset/" + cs.getId();
+                                    StringSelection selection = new StringSelection(changesetLink);
+                                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                                    clipboard.setContents(selection, selection);
+                                    break;
+                                }
+                            }
+                        }
+                    });
+
+                }
+
+            }
+        }
+    };
 }
 
